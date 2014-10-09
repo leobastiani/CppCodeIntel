@@ -60,7 +60,7 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
         # reseta os snippets
         self.files[file_name] = {}
         #adicionando funcoes do tipo int func();
-        matches = re.findall('(\w+)\**\s+(?:\w+\s+)*\**\s*([\w]+)\s*\(([^\)]*)\)', contents)
+        matches = re.compile('(\w+)\**\s+(?:\w+\s+)*\**\s*([\w]+)\s*\(([^\)]*)\)').findall(contents)
         for match in matches:
             if match[0] == 'return': # evitar confilitos como a linha 'return func(arg1, arg2);'
                 continue
@@ -77,11 +77,11 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
                 count += 1
             self.files[file_name][match[1]] = match[1]+'('+', '.join(splited)+')'
         #adicionando defines
-        matches = re.findall('\#define\s+(\w+)', contents)
+        matches = re.compile('\#define\s+(\w+)').findall(contents)
         for match in matches:
             self.files[file_name][match] = match
         #adicionando includes
-        matches = re.findall('\#include\s*\"(.*)\"', contents)
+        matches = re.compile('\#include\s*\"(.*)\"').findall(contents)
         for include in matches:
             self.loadFile(dir_name+dir_separate+include)
         self.reloadCompletions()
