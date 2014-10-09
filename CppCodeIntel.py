@@ -60,28 +60,28 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
         # reseta os snippets
         self.files[file_name] = {}
         #adicionando funcoes do tipo int func();
-        matches = re.compile('(\w+)\**\s+(?:\w+\s+)*\**\s*([\w]+)\s*\(([^\)]*)\)').findall(contents)
+        matches = re.compile('(\w+)\** +(?:\w+ +)*\** *([\w]+) *\(([^\)]*)\)').findall(contents)
         for match in matches:
             if match[0] == 'return': # evitar confilitos como a linha 'return func(arg1, arg2);'
                 continue
-            elif match[1] == 'main': # nao usa snippet para main
+            elif match[1] == 'main': # nao cria snippet para main
                 continue
             count = 1
             splited = match[2].split(', ')
             for j, string in enumerate(splited):
-                try:
-                    last_word = re.search('(\w+)+$', string).group()
-                except:
+                if string == '':
                     continue
+                else:
+                    last_word = re.search('\w+$', string).group()
                 splited[j] = '${'+str(count)+':'+last_word+'}'
                 count += 1
             self.files[file_name][match[1]] = match[1]+'('+', '.join(splited)+')'
         #adicionando defines
-        matches = re.compile('\#define\s+(\w+)').findall(contents)
+        matches = re.compile('\#define +(\w+)').findall(contents)
         for match in matches:
             self.files[file_name][match] = match
         #adicionando includes
-        matches = re.compile('\#include\s*\"(.*)\"').findall(contents)
+        matches = re.compile('\#include *\"(.*)\"').findall(contents)
         for include in matches:
             self.loadFile(dir_name+dir_separate+include)
         self.reloadCompletions()
