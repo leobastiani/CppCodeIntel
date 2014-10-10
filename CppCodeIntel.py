@@ -35,17 +35,37 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
             return ;
         elif not self.isEnabled(view):
             return ;
-        self.loadFile(view.file_name(), False, view.substr(sublime.Region(0, view.size())))
+        self.loadFile(view.file_name(), False, self.getContentFromView(view))
 
     def on_post_save_async(self, view):
         if not self.isEnabled(view):
             return ;
-        self.loadFile(view.file_name(), True, view.substr(sublime.Region(0, view.size())))
+        self.loadFile(view.file_name(), True, self.getContentFromView(view))
+
+    def on_close(self, view):
+        if not self.isEnabled(view):
+            return ;
+        if Debug:
+            print('CppCodeIntel: closed: '+os.path.basename(view.file_name()))
+        self.removeFile(view.file_name())
+        self.reloadCompletions()
 
     def on_query_completions(self, view, prefix, locations):
         if not self.isEnabled(view):
             return []
         return self.completions
+
+    def removeFile(self, file_path):
+        file_name = os.path.basename(file_path)
+        path = os.path.dirname(file_path)
+        if self.files.get(file_name) != None:
+            print('CppCodeIntel: removing file: '+file_name)
+            del self.files[file_name]
+            with open(path+dir_separate+file_name, "r") as file:
+                contents = file.read()
+            includes = getIncludesFromContent(contents)
+            for include in includes:
+                self.removeFile(path+dir_separate+include)
 
     def loadFile(self, file, override_file=False, contents=None):
         if contents == None:
@@ -68,11 +88,11 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
                 continue
             count = 1
             splited = match[2].split(', ')
-            for j, string in enumerate(splited):
-                if string == '':
+            for j, args in enumerate(splited):
+                if args == '':
                     continue
                 else:
-                    last_word = re.search('\w+$', string).group()
+                    last_word = re.search('\w+$', args).group()
                 splited[j] = '${'+str(count)+':'+last_word+'}'
                 count += 1
             self.files[file_name][match[1]] = match[1]+'('+', '.join(splited)+')'
@@ -81,16 +101,25 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
         for match in matches:
             self.files[file_name][match] = match
         #adicionando includes
-        matches = re.compile('\#include *\"(.*)\"').findall(contents)
-        for include in matches:
+        includes = getIncludesFromContent(contents)
+        for include in includes:
             self.loadFile(dir_name+dir_separate+include)
         self.reloadCompletions()
 
     def reloadCompletions(self):
-        self.completions = []
+        if Debug:
+            print('CppCodeIntel: reloading completions')
+            print('\tfiles to process: '+' '.join(self.files.keys()))
+        del self.completions[:]
         funcs = {} # todas as funcoes definidas
         for file in self.files.values():
             for func in file:
                 if funcs.get(func) == None:
                     self.completions += [(func, file[func])]
                     funcs[func] = True
+
+    def getContentFromView(self, view):
+        return view.substr(sublime.Region(0, view.size()))
+
+def getIncludesFromContent(contents):
+    return re.compile('\#include *\"(.*)\"').findall(contents)
