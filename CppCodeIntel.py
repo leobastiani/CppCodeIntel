@@ -61,24 +61,28 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
         file_name = os.path.basename(file_path)
         path = os.path.dirname(file_path)
         if self.files.get(file_name) != None:
-            print('CppCodeIntel: removing file: '+file_name)
+            if Debug:
+                print('CppCodeIntel: removing file: '+file_name)
             del self.files[file_name]
+            if not os.path.exists(file):
+                return ; # file not exists
             with open(os.path.join(path, file_name), "r") as file:
                 contents = file.read()
             includes = getIncludesFromContent(contents)
             for include in includes:
                 self.removeFile(os.path.join(path, include))
 
-    def loadFile(self, file, override_file=False, file_contents=None):
+    def loadFile(self, file_path, override_file=False, file_contents=None):
         '''
         this function will load a file in self.files
         '''
         if file_contents == None:
-            f = open(file, 'r')
-            file_contents = f.read()
-            f.close()
-        file_name = os.path.basename(file)
-        dir_name = os.path.dirname(file)
+            if not os.path.exists(file_path):
+                return ; # file not exists
+            with open(file_path, 'r') as file:
+                file_contents = file.read()
+        file_name = os.path.basename(file_path)
+        dir_name = os.path.dirname(file_path)
         settings = sublime.load_settings("cppcodeintel.sublime-settings")
         self.show_only_last_word = settings.get("show_only_last_word", False)
         if not (self.files.get(file_name) == None or override_file):
