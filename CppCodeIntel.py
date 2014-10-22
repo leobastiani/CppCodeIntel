@@ -64,7 +64,7 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
             if Debug:
                 print('CppCodeIntel: removing file: '+file_name)
             del self.files[file_name]
-            if not os.path.exists(file):
+            if not os.path.exists(file_path):
                 return ; # file not exists
             with open(os.path.join(path, file_name), "r") as file:
                 contents = file.read()
