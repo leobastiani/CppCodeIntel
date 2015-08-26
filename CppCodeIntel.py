@@ -19,6 +19,8 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
         self.completions = [] # aqui vao todos os snippets, é regenerado a todo momento # all snippets, it will be regenerate everytime
         self.files = {} # aqui vao todos os arquivos # all files
         # self.files['file.c']['func'] vao todas as palavras # self.files['file.c']['func'] == self.completions['func']
+        settings = sublime.load_settings("cppcodeintel.sublime-settings")
+        self.show_only_last_word = settings.get("show_only_last_word", False)
 
     def isEnabled(self, view):
         syntax, _ = os.path.splitext(os.path.basename(view.settings().get('syntax')))
@@ -66,7 +68,7 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
             del self.files[file_name]
             if not os.path.exists(file_path):
                 return ; # file not exists
-            with open(os.path.join(path, file_name), "r") as file:
+            with open(os.path.join(path, file_name), "r", encoding='utf-8') as file:
                 contents = file.read()
             includes = getIncludesFromContent(contents)
             for include in includes:
@@ -79,12 +81,10 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
         if file_contents == None:
             if not os.path.exists(file_path):
                 return ; # file not exists
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 file_contents = file.read()
         file_name = os.path.basename(file_path)
         dir_name = os.path.dirname(file_path)
-        settings = sublime.load_settings("cppcodeintel.sublime-settings")
-        self.show_only_last_word = settings.get("show_only_last_word", False)
         if not (self.files.get(file_name) == None or override_file):
             return ;
         if Debug: print("CppCodeIntel: loading file '"+file_name+"'")
@@ -132,7 +132,7 @@ class CppCodeIntelEventListener(sublime_plugin.EventListener):
         '''
         if Debug:
             print('CppCodeIntel: reloading completions')
-            print('\tfiles to process: '+' '.join(self.files.keys()))
+            print('\tfiles to process: '+', '.join(self.files.keys()))
         del self.completions[:]
         funcs = {} # todas as funcoes definidas
         for file in self.files.values():
